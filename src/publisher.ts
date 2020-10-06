@@ -1,5 +1,6 @@
 import nats from 'node-nats-streaming';
 import { randomBytes } from 'crypto';
+import { TicketCreatedPublisher } from './events/ticket-created-publisher';
 
 console.clear();
 const cfg = {
@@ -17,20 +18,16 @@ cfg.clientId = `${cfg.serviceName}-${randomBytes(4).toString('hex')}`;
 // instantiate NATS client. Community convention calls the client `stan`
 const stan = nats.connect(cfg.clusterId, cfg.clientId, cfg.natsConfig);
 
-stan.on('connect', () => {
+stan.on('connect', async () => {
   console.log(
     `${cfg.serviceName} (${cfg.clientId}) successfully connected to NATS`
   );
 
-  // all data sent to NATS has to be a string
-  const data = JSON.stringify({
+  const publisher = new TicketCreatedPublisher(stan);
+
+  await publisher.publish({
     id: '123',
     title: 'concert',
     price: 20,
-  });
-
-  // publish(subject, event/message, callback)
-  stan.publish(cfg.topic, data, () => {
-    console.log('Event published to NATS');
   });
 });
